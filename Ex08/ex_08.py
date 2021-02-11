@@ -8,7 +8,7 @@ Assignment 08: Experiments with German N-grams
 Template
 """
 
-import re
+import re, random
 
 
 class Ngram:
@@ -35,28 +35,55 @@ class Ngram:
         :param filename: The name of the file to base the model on.
         :param n: The number of tokens in the n-gram tuples.
         """
-        pass
+        self.filename = filename
+        self.n = n
+        self.raw_counts = {}
+        self.prob = {}
+        self.cond_prob = {}
+        
 
     # Task 2
     def extract_raw_counts(self):
         """
         Compute the raw counts for each n-gram occurring in the text.
         """
-        pass
-    
+        with open(self.filename, encoding="utf8") as fi:
+            for line in fi:
+                tokens = ["BOS"] * (self.n - 1) + tokenize_smart(line.strip()) + ["EOS"] * (self.n - 1)
+
+                for i in range(len(tokens)-1):
+                    smth = tuple(tokens[i : i + self.n])
+                    if smth not in self.raw_counts:
+                        self.raw_counts[smth] = 1
+                    else:
+                        self.raw_counts[smth] += 1
+
+
     # Task 3
     def extract_probabilities(self):
         """
         Compute the probability of an n-gram occurring in the text.
         """
-        pass
+        total = sum(self.raw_counts.values())
+        self.prob = {key: value / total for key, value in self.raw_counts.items()}
+
 
     # Task 4
     def extract_conditional_probabilities(self):
         """
         Compute the probability distribution over the next tokens given an n-1-gram.
         """
-        pass
+        for ngram in self.prob:
+            mgram, unigram = ngram[:-1], ngram[-1]
+            if mgram not in self.cond_prob:
+                self.cond_prob[mgram] = {}
+            self.cond_prob[mgram][unigram] = self.prob[ngram]
+            
+        for mgram in self.cond_prob:
+            total = sum(self.cond_prob[mgram].values())
+            for unigram in self.cond_prob[mgram]:
+                self.cond_prob[mgram][unigram] /= total
+    
 
     # Task 5
     def generate_random_token(self, mgram):
@@ -69,7 +96,10 @@ class Ngram:
         :return a random next token for the n-1-gram.
         :rtype str
         """
-        pass
+        return random.choices(list(self.cond_prob[mgram].keys()), 
+                              list(self.cond_prob[mgram].values())
+                              )[0]
+    
 
     # Task 6
     def generate_random_sentence(self):
@@ -79,7 +109,15 @@ class Ngram:
         :return a random sentence
         :rtype list[str]
         """
-        pass
+        sentence = []
+        mgram = ['BOS'] * (self.n - 1)
+        while True:
+            token = self.generate_random_token(tuple(mgram))
+            if token == 'EOS':
+                break
+            sentence.append(token)
+            mgram = mgram[1:] + [token]
+        return sentence
 
 
 def tokenize_smart(sentence):
@@ -110,7 +148,7 @@ def tokenize_smart(sentence):
 def list2str(sentence):
     """
     Convert a sentence given as a list of strings to the sentence as a string separated by whitespace.
-    
+
     :param sentence: the string list to be joined
     :type sentence: list[str]
     :return: sentence as a string, separated by whitespace
@@ -123,25 +161,25 @@ def list2str(sentence):
 
 if __name__ == '__main__':
     # Task 1
-    ngram_model = Ngram("de-sentences-tatoeba.txt", 2)
+    ngram_model = Ngram("de-sentences-tatoeba.txt", 3)
     print(ngram_model.n, ngram_model.filename)
     print(ngram_model.raw_counts, ngram_model.prob, ngram_model.cond_prob)
     # Task 2
     ngram_model.extract_raw_counts()
-    print(ngram_model.raw_counts[("kaltes", "Land")])
-    print(ngram_model.raw_counts[("schönes", "Land")])
+    #print(ngram_model.raw_counts[("kaltes", "Land")])
+    #print(ngram_model.raw_counts[("schönes", "Land")])
     # Task 3
     ngram_model.extract_probabilities()
-    print(ngram_model.prob[("kaltes", "Land")])
-    print(ngram_model.prob[("schönes", "Land")])
+    #print(ngram_model.prob[("kaltes", "Land")])
+    #print(ngram_model.prob[("schönes", "Land")])
     # Task 4
     ngram_model.extract_conditional_probabilities()
-    print(ngram_model.cond_prob[(" beobachteten ",)])
-    print(ngram_model.cond_prob[("schönes",)][("Land")])
+    #print(ngram_model.cond_prob[("beobachteten",)])
+    #print(ngram_model.cond_prob[("schönes",)][("Land")])
     # Task 5
-    print(ngram_model.generate_random_token(("den",)))
-    print(ngram_model.generate_random_token(("den",)))
-    print(ngram_model.generate_random_token(("den",)))
+    #print(ngram_model.generate_random_token(("den",)))
+    #print(ngram_model.generate_random_token(("den",)))
+    #print(ngram_model.generate_random_token(("den",)))
     # Task 6
     print(list2str(ngram_model.generate_random_sentence()))
     print(list2str(ngram_model.generate_random_sentence()))
